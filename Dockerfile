@@ -12,10 +12,9 @@ RUN set -x && \
     make
 # setup the build
 ARG PKG="github.com/kubernetes-sigs/cri-tools"
-ARG SRC="github.com/kubernetes-sigs/cri-tools"
 ARG TAG="v1.31.0"
 ARG ARCH="amd64"
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${PKG}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
 RUN git checkout tags/${TAG} -b ${TAG}

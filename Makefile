@@ -12,8 +12,6 @@ endif
 
 BUILD_META=-build$(shell TZ=UTC date +%Y%m%d)
 ORG ?= rancher
-PKG ?= github.com/kubernetes-sigs/cri-tools
-SRC ?= github.com/kubernetes-sigs/cri-tools
 TAG ?= ${GITHUB_ACTION_TAG}
 
 ifeq ($(TAG),)
@@ -32,8 +30,6 @@ image-build:
 		--progress=plain \
 		--platform=$(ARCH) \
 		--pull \
-		--build-arg PKG=$(PKG) \
-		--build-arg SRC=$(SRC) \
 		--build-arg TAG=$(TAG:$(BUILD_META)=) \
 		--build-arg ARCH=$(ARCH) \
 		--build-arg GO_IMAGE=rancher/hardened-build-base:$(GOLANG_VERSION) \
@@ -55,8 +51,6 @@ log:
 	@echo "ARCH=$(ARCH)"
 	@echo "TAG=$(TAG:$(BUILD_META)=)"
 	@echo "ORG=$(ORG)"
-	@echo "PKG=$(PKG)"
-	@echo "SRC=$(SRC)"
 	@echo "BUILD_META=$(BUILD_META)"
 	@echo "UNAME_M=$(UNAME_M)"
 	@echo "GOLANG_VERSION=$(GOLANG_VERSION)"
