@@ -29,7 +29,6 @@ image-build:
 	docker buildx build \
 		--progress=plain \
 		--platform=$(ARCH) \
-		--pull \
 		--build-arg TAG=$(TAG:$(BUILD_META)=) \
 		--build-arg ARCH=$(ARCH) \
 		--build-arg GO_IMAGE=rancher/hardened-build-base:$(GOLANG_VERSION) \
