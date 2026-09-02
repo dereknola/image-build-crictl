@@ -4,7 +4,7 @@ name: Release on Base Image Update
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'Dockerfile'
   workflow_dispatch:
