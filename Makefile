@@ -1,13 +1,14 @@
 SEVERITIES = HIGH,CRITICAL
 
 UNAME_M = $(shell uname -m)
-ARCH=
-ifeq ($(UNAME_M), x86_64)
-	ARCH=amd64
-else ifeq ($(UNAME_M), aarch64)
-	ARCH=arm64
-else 
-	ARCH=$(UNAME_M)
+ifndef TARGET_PLATFORMS
+	ifeq ($(UNAME_M), x86_64)
+		TARGET_PLATFORMS:=linux/amd64
+	else ifeq ($(UNAME_M), aarch64)
+		TARGET_PLATFORMS:=linux/arm64
+	else
+		TARGET_PLATFORMS:=linux/$(UNAME_M)
+	endif
 endif
 
 BUILD_META=-build$(shell TZ=UTC date +%Y%m%d)
@@ -28,12 +29,10 @@ GOLANG_VERSION := $(shell ./scripts/golang-version.sh $(TAG))
 image-build:
 	docker buildx build \
 		--progress=plain \
-		--platform=$(ARCH) \
+		--platform=$(TARGET_PLATFORMS) \
 		--build-arg TAG=$(TAG:$(BUILD_META)=) \
-		--build-arg ARCH=$(ARCH) \
 		--build-arg GO_IMAGE=rancher/hardened-build-base:$(GOLANG_VERSION) \
 		--tag $(ORG)/hardened-crictl:$(TAG) \
-		--tag $(ORG)/hardened-crictl:$(TAG)-$(ARCH) \
 		--load \
 	.
 
@@ -45,7 +44,7 @@ image-build-all:
 
 .PHONY: image-push
 image-push:
-	docker push $(ORG)/hardened-crictl:$(TAG)-$(ARCH)
+	docker push $(ORG)/hardened-crictl:$(TAG)
 
 .PHONY: image-scan
 image-scan:
