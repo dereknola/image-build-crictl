@@ -1,19 +1,21 @@
 ARG GO_IMAGE=rancher/hardened-build-base:v1.26.8b1
-FROM ${GO_IMAGE} AS builder
-# setup required packages
+# Image that provides cross compilation tooling.
+FROM --platform=$BUILDPLATFORM rancher/mirrored-tonistiigi-xx:1.6.1 AS xx
+
+FROM --platform=$BUILDPLATFORM ${GO_IMAGE} AS builder
+# copy xx scripts to the build stage
+COPY --from=xx / /
+RUN apk add --no-cache file make git clang lld llvm
+ARG TARGETPLATFORM
 RUN set -x && \
-    apk --no-cache add \
-    jq \
-    file \
-    gcc \
-    git \
+    xx-info env &&\
+    xx-apk --no-cache add musl-dev gcc \
     libselinux-dev \
-    libseccomp-dev \
-    make
+    libseccomp-dev 
+
 # setup the build
 ARG PKG="github.com/kubernetes-sigs/cri-tools"
 ARG TAG
-ARG ARCH="amd64"
 RUN git clone --depth=1 https://${PKG}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
@@ -28,14 +30,20 @@ RUN set -x; \
     go mod tidy && go mod vendor
 COPY go-mod-overrides ./go-mod-overrides
 RUN go-mod-overrides.sh ./go-mod-overrides
-RUN GO_LDFLAGS="-linkmode=external -X $(awk '/^module /{print $2}' go.mod)/pkg/version.Version=${TAG}" \
+RUN go mod download
+
+ARG TARGETARCH
+RUN xx-go --wrap && \
+    GO_LDFLAGS="-linkmode=external -X $(awk '/^module /{print $2}' go.mod)/pkg/version.Version=${TAG}" \
     go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/crictl ./cmd/crictl
-RUN go-assert-static.sh bin/*
-RUN if [ "${ARCH}" = "amd64" ]; then \
+RUN xx-verify --static bin/* && \
+    go-assert-static.sh bin/*
+RUN if [ "$(xx-info arch)" = "amd64" ]; then \
         go-assert-boring.sh bin/* ; \
     fi
-RUN install -s bin/* /usr/local/bin
-RUN crictl --version
+# llvm-strip is arch-agnostic, where gnu strip needs to running on target arch
+RUN llvm-strip bin/*
+RUN install bin/* /usr/local/bin
 
 FROM scratch
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
